@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "94795842096",
+    "project_id": "testbase-5fdfb",
+    "storage_bucket": "testbase-5fdfb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:94795842096:android:0c03bc3addefb450ec23f5",
+        "android_client_info": {
+          "package_name": "com.example.testkart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3N44xUyJsnJnnFQKIoJT3nysEq9_vXHs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
