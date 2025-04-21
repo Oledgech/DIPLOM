@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Стиль для активной кнопки -->
+    <style name="PeriodButtonActive" parent="Widget.AppCompat.Button">
+        <item name="android:backgroundTint">#2196F3</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:paddingHorizontal">16dp</item> <!-- Увеличено с 12dp до 16dp -->
+        <item name="android:paddingVertical">8dp</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- Стиль для неактивной кнопки -->
+    <style name="PeriodButtonInactive" parent="Widget.AppCompat.Button">
+        <item name="android:backgroundTint">@android:color/white</item>
+        <item name="android:textColor">@android:color/black</item>
+        <item name="android:background">@drawable/button_border</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:paddingHorizontal">16dp</item> <!-- Увеличено с 12dp до 16dp -->
+        <item name="android:paddingVertical">8dp</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+</resources>

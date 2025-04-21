@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_stat"
+        android:icon="@drawable/free_icon_stats_223407"
+        android:title="Статистика" />
+    <item
+        android:id="@+id/nav_main"
+        android:icon="@drawable/free_icon_grid_9478349"
+        android:title="Главная" />
+    <item
+        android:id="@+id/nav_user"
+        android:icon="@drawable/free_icon_my_account_17200091"
+        android:title="Пользователь" />
+
+</menu>

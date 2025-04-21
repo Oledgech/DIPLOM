@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="step_goals">
+        <item>5000</item>
+        <item>10000</item>
+        <item>15000</item>
+        <item>20000</item>
+    </string-array>
+
+    <string-array name="genders">
+        <item>Мужской</item>
+        <item>Женский</item>
+    </string-array>
+
+    <string-array name="birth_dates">
+        <item>17 сент. 2001 г.</item>
+        <item>1 янв. 1990 г.</item>
+        <item>15 мар. 1995 г.</item>
+        <item>30 дек. 1985 г.</item>
+    </string-array>
+
+    <string-array name="weights">
+        <item>95,5 кг</item>
+        <item>80 кг</item>
+        <item>70 кг</item>
+        <item>60 кг</item>
+    </string-array>
+
+    <string-array name="heights">
+        <item>190 см</item>
+        <item>180 см</item>
+        <item>170 см</item>
+        <item>160 см</item>
+    </string-array>
+</resources>
