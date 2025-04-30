@@ -22,4 +22,8 @@ class StepRepository @Inject constructor(
     fun getStepsForDate(date: String): Flow<StepEntry?> {
         return stepsDao.getStepsForDate(date)
     }
+
+    fun getStepsForRange(startDate: String, endDate: String): Flow<List<StepEntry>> {
+        return stepsDao.getStepsForRange(startDate, endDate)
+    }
 }

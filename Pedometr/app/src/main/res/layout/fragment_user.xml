@@ -47,16 +47,42 @@
                 android:textColor="@color/design_default_color_on_secondary"
                 android:textSize="16sp" />
 
-            <Spinner
-                android:id="@+id/stepGoalSpinner"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
-                android:minHeight="48dp"
-                android:background="@android:color/transparent"
-                android:entries="@array/step_goals"
-                android:spinnerMode="dropdown" />
-        </LinearLayout>
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
+                <Button
+                    android:id="@+id/decrementStepsButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@android:color/transparent"
+                    android:text="−"
+                    android:textColor="@color/design_default_color_on_secondary"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/stepGoalTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:gravity="center"
+                    android:text="5000"
+                    android:textColor="@color/design_default_color_on_secondary"
+                    android:textSize="16sp" />
+
+                <Button
+                    android:id="@+id/incrementStepsButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@android:color/transparent"
+                    android:text="+"
+                    android:textColor="@color/design_default_color_on_secondary"
+                    android:textSize="24sp" />
+            </LinearLayout>
+        </LinearLayout>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -110,14 +136,16 @@
                 android:textColor="@color/design_default_color_on_secondary"
                 android:textSize="16sp" />
 
-            <Spinner
-                android:id="@+id/birthDateSpinner"
+            <TextView
+                android:id="@+id/birthDateTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:minHeight="48dp"
                 android:background="@android:color/transparent"
-                android:entries="@array/birth_dates"
-                android:spinnerMode="dropdown" />
+                android:gravity="center_vertical"
+                android:text="01.01.1995"
+                android:textColor="@color/design_default_color_on_secondary"
+                android:textSize="16sp" />
         </LinearLayout>
 
         <!-- Вес -->
@@ -138,14 +166,16 @@
                 android:textColor="@color/design_default_color_on_secondary"
                 android:textSize="16sp" />
 
-            <Spinner
-                android:id="@+id/weightSpinner"
+            <TextView
+                android:id="@+id/weightTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:minHeight="48dp"
                 android:background="@android:color/transparent"
-                android:entries="@array/weights"
-                android:spinnerMode="dropdown" />
+                android:gravity="center_vertical"
+                android:text="95,5 кг"
+                android:textColor="@color/design_default_color_on_secondary"
+                android:textSize="16sp" />
         </LinearLayout>
 
         <!-- Рост -->
@@ -166,14 +196,16 @@
                 android:textColor="@color/design_default_color_on_secondary"
                 android:textSize="16sp" />
 
-            <Spinner
-                android:id="@+id/heightSpinner"
+            <TextView
+                android:id="@+id/heightTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:minHeight="48dp"
                 android:background="@android:color/transparent"
-                android:entries="@array/heights"
-                android:spinnerMode="dropdown" />
+                android:gravity="center_vertical"
+                android:text="190 см"
+                android:textColor="@color/design_default_color_on_secondary"
+                android:textSize="16sp" />
         </LinearLayout>
 
     </LinearLayout>

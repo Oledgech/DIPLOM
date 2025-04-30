@@ -2,21 +2,27 @@ package com.example.pedometr
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import com.example.pedometr.data.StepViewModel
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.util.*
-
+@AndroidEntryPoint
 class StatisticsFragment : Fragment() {
 
     private lateinit var avgStepsTextView: TextView
@@ -27,6 +33,7 @@ class StatisticsFragment : Fragment() {
     private lateinit var btn6Months: Button
     private lateinit var btn1Year: Button
     private lateinit var btnAllData: Button
+    private val viewModel: StepViewModel by viewModels()
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -91,20 +98,37 @@ class StatisticsFragment : Fragment() {
         }
     }
     private fun updateStatistics(days: Int) {
-        val sharedPreferences = requireContext().getSharedPreferences("myPrefs", Context.MODE_PRIVATE)
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val calendar = Calendar.getInstance()
+        val endDate = dateFormat.format(calendar.time) // Текущая дата
+        calendar.add(Calendar.DAY_OF_YEAR, -days + 1)
+        val startDate = dateFormat.format(calendar.time) // Дата N дней назад
+
+        // Логирование для отладки
+        Log.d("StatisticsFragment", "startDate: $startDate, endDate: $endDate")
+
+        // Получение данных из Room через StepViewModel
+        val stepsData = runBlocking {
+            viewModel.getStepsForRange(startDate, endDate).first()
+        }
+
         val stepsPerDay = mutableListOf<Int>()
         val labels = mutableListOf<String>()
-
         var totalSteps = 0
-        for (i in 0 until days) {
+
+        // Создаем карту для быстрого доступа к шагам по дате
+        val stepsMap = stepsData.associateBy { it.date }
+
+        // Заполняем данные для графика
+        calendar.time = dateFormat.parse(startDate)!!
+        val endDateParsed = dateFormat.parse(endDate)!!
+        while (calendar.time <= endDateParsed) {
             val date = dateFormat.format(calendar.time)
-            val steps = sharedPreferences.getInt("steps_$date", 0)
+            val steps = stepsMap[date]?.steps ?: 0
             stepsPerDay.add(steps)
             totalSteps += steps
             labels.add(getDayOfWeek(calendar.get(Calendar.DAY_OF_WEEK)))
-            calendar.add(Calendar.DAY_OF_YEAR, -1)
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
 
         val avgSteps = if (stepsPerDay.isNotEmpty()) totalSteps / stepsPerDay.size else 0
@@ -123,6 +147,7 @@ class StatisticsFragment : Fragment() {
         barChart.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
         barChart.invalidate()
     }
+
 
     private fun getDayOfWeek(day: Int): String {
         return when (day) {

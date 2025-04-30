@@ -1,6 +1,7 @@
 package com.example.pedometr
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -22,9 +23,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 
 import com.example.pedometr.data.AppDatabase
+import com.example.pedometr.data.DatabaseModule
 import com.example.pedometr.data.StepRepository
 import com.example.pedometr.data.StepViewModel
 import com.example.pedometr.data.StepViewModelFactory
+import com.example.pedometr.mariaDb.ApiClient
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +41,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-class MainFragment : Fragment(), SensorEventListener{
+class MainFragment : Fragment(){
 
     private var sensorManager: SensorManager? = null
     private var stepCounterSensor: Sensor? = null
@@ -62,11 +65,13 @@ class MainFragment : Fragment(), SensorEventListener{
     private var lastUpdateTime = 1L // Время последнего обновления шагов
     private var lastStepCount = 0
     private lateinit var viewModel: StepViewModel
+    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var tvGoal: TextView
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            initializeSensor()
+            startStepTrackingService()
         } else {
             Toast.makeText(requireContext(), "Permission denied. Cannot count steps.", Toast.LENGTH_LONG).show()
             stepTextView.text = "Permission Denied"
@@ -77,8 +82,9 @@ class MainFragment : Fragment(), SensorEventListener{
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_main, container, false)
+        sharedPreferences = requireContext().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
         //Room
-        val database = AppDatabase.getDatabase(requireContext())
+        val database = DatabaseModule.provideDatabase(requireContext())
         val repository = StepRepository(database.stepsDao())
         val factory = StepViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[StepViewModel::class.java]
@@ -89,6 +95,7 @@ class MainFragment : Fragment(), SensorEventListener{
         stepTextView = view.findViewById(R.id.stepCountTextView1)
         circularProgressBar = view.findViewById(R.id.circularProgressBar)
         buildRouteButton = view.findViewById(R.id.buildRouteButton)
+        tvGoal = view.findViewById(R.id.tvGoal)
         sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
         buildRouteButton.setOnClickListener {
             val mapMainFragment = MapMainFragment()
@@ -100,15 +107,63 @@ class MainFragment : Fragment(), SensorEventListener{
 ////        loadData()
 //        resetSteps()
 //        executorService = Executors.newSingleThreadScheduledExecutor()
+        val stepGoal = sharedPreferences.getInt("stepGoal", 5000)
+        tvGoal.text = "/$stepGoal"
+        circularProgressBar.progressMax = stepGoal.toFloat()
 
+        // Наблюдение за изменениями цели шагов
+        sharedPreferences.registerOnSharedPreferenceChangeListener { prefs, key ->
+            if (key == "stepGoal") {
+                val newStepGoal = prefs.getInt("stepGoal", 5000)
+                tvGoal.text = "/$newStepGoal"
+                circularProgressBar.progressMax = newStepGoal.toFloat()
+                updateUI(currentSteps) // Обновляем UI с учетом новой цели
+            }
+        }
         //Сегодняшние шаги
         viewModel.todaySteps.observe(viewLifecycleOwner) { stepEntity ->
             val steps = stepEntity?.steps ?: 0
             Log.d("MainActivitysafsa", "Saved steps for  $steps")
             updateUI(steps)
         }
+        val token = sharedPreferences.getString("moodle_token", null)
+        if (token == null) {
+            val loginFragment = LoginFragment()
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, loginFragment)
+                .commit()
+        }
 
         requestActivityRecognitionPermission()
+        lifecycleScope.launch {
+            try {
+                val activities = ApiClient.activityApi.getAllActivities()
+
+                // Пример вывода в лог
+                activities.forEach {
+                    Log.d("API", "Дата: ${it.activity_date}, Шаги: ${it.steps}, Группа: ${it.user_group}")
+                }
+
+                // Пример отображения одной записи в TextView
+                if (activities.isNotEmpty()) {
+                    val last = activities.last()
+                    val text = """
+                Последняя активность:
+                Дата: ${last.activity_date}
+                Шаги: ${last.steps}
+                Расстояние: ${last.distance_km} км
+                Время: ${last.active_time_minutes} мин
+                Группа: ${last.user_group}
+            """.trimIndent()
+
+                    view?.findViewById<TextView>(R.id.activityInfoTextView)?.text = text
+                }
+
+            } catch (e: Exception) {
+                Log.e("API", "Ошибка при получении: ${e.localizedMessage}")
+                Toast.makeText(requireContext(), "Ошибка при загрузке данных", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         return view
     }
@@ -122,24 +177,24 @@ class MainFragment : Fragment(), SensorEventListener{
             ) {
                 permissionLauncher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
             } else {
-                initializeSensor()
+                startStepTrackingService()
             }
         } else {
-            initializeSensor()
+            startStepTrackingService()
         }
     }
     //Сенсор
-    private fun initializeSensor() {
-        sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        stepCounterSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-        if (stepCounterSensor != null) {
-            isCounterSensorPresent = true
-        } else {
-            stepTextView.text = "Step Counter Sensor not available!"
-            isCounterSensorPresent = false
-            Toast.makeText(requireContext(), "No step sensor available", Toast.LENGTH_LONG).show()
-        }
-    }
+//    private fun initializeSensor() {
+//        sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
+//        stepCounterSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+//        if (stepCounterSensor != null) {
+//            isCounterSensorPresent = true
+//        } else {
+//            stepTextView.text = "Step Counter Sensor not available!"
+//            isCounterSensorPresent = false
+//            Toast.makeText(requireContext(), "No step sensor available", Toast.LENGTH_LONG).show()
+//        }
+//    }
     override fun onResume() {
         super.onResume()
 //        running = true
@@ -152,14 +207,7 @@ class MainFragment : Fragment(), SensorEventListener{
 //        } else {
 //            sensorManager?.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI)
 //        }
-//        startStepTrackingService()
-        if (isCounterSensorPresent) {
-            sensorManager?.registerListener(
-                this,
-                stepCounterSensor,
-                SensorManager.SENSOR_DELAY_UI
-            )
-        }
+        startStepTrackingService()
     }
 //    private fun startSimulatedSteps() {
 //        executorService?.scheduleWithFixedDelay({
@@ -175,116 +223,124 @@ class MainFragment : Fragment(), SensorEventListener{
 //        sensorManager?.unregisterListener(this)
 //        saveData()
     super.onPause()
-    if (isCounterSensorPresent) {
-        sensorManager?.unregisterListener(this)
-    }
 
     }
 
-    override fun onSensorChanged(event: SensorEvent?) {
-
-//        if (running) {
-//            if (simulateSteps) {
-//                totalSteps += 100f
-//                Log.d("MainActivityqwrwq", "Simulated steps: $totalSteps")
-//            } else if (event != null) {
-//                totalSteps = event.values[0]
-//            }
+//    override fun onSensorChanged(event: SensorEvent?) {
 //
-//
-//            currentSteps = totalSteps.toInt() - previousTotalSteps.toInt()
-//            val currentTime = System.currentTimeMillis()
-//            saveData(currentTime.toInt())
-////            currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-////            Log.d("MainFragment", "currentDate: $currentDate")
-////            Log.d("MainFragment", "lastDate: $lastDate")
-////            if (lastDate != currentDate) {
-////                if (lastDate != null) {
-////                    Log.d("MainFragment", "lastDatecheck: $lastDate")
-////                    saveDailySteps(lastDate!!, currentSteps)
-////                }
-////                previousTotalSteps = totalSteps
-////                currentSteps = 0
-////                saveData()
-////                lastDate = currentDate
-////                stepTextView.text = "$currentSteps"
-////                circularProgressBar.setProgressWithAnimation(currentSteps.toFloat())
-////            } else {
-////                currentSteps = totalSteps.toInt() - previousTotalSteps.toInt()
-////                activity?.runOnUiThread{
-////                    stepTextView.text = "$currentSteps"
-////                    circularProgressBar.setProgressWithAnimation(currentSteps.toFloat())
-////                }
-////
+////        if (running) {
+////            if (simulateSteps) {
+////                totalSteps += 100f
+////                Log.d("MainActivityqwrwq", "Simulated steps: $totalSteps")
+////            } else if (event != null) {
+////                totalSteps = event.values[0]
 ////            }
-//            if (lastUpdateTime != 0L && currentSteps > lastStepCount) {
-//                // Если шаги увеличились, добавляем время между обновлениями к общей сумме
+////
+////
+////            currentSteps = totalSteps.toInt() - previousTotalSteps.toInt()
+////            val currentTime = System.currentTimeMillis()
+////            saveData(currentTime.toInt())
+//////            currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+//////            Log.d("MainFragment", "currentDate: $currentDate")
+//////            Log.d("MainFragment", "lastDate: $lastDate")
+//////            if (lastDate != currentDate) {
+//////                if (lastDate != null) {
+//////                    Log.d("MainFragment", "lastDatecheck: $lastDate")
+//////                    saveDailySteps(lastDate!!, currentSteps)
+//////                }
+//////                previousTotalSteps = totalSteps
+//////                currentSteps = 0
+//////                saveData()
+//////                lastDate = currentDate
+//////                stepTextView.text = "$currentSteps"
+//////                circularProgressBar.setProgressWithAnimation(currentSteps.toFloat())
+//////            } else {
+//////                currentSteps = totalSteps.toInt() - previousTotalSteps.toInt()
+//////                activity?.runOnUiThread{
+//////                    stepTextView.text = "$currentSteps"
+//////                    circularProgressBar.setProgressWithAnimation(currentSteps.toFloat())
+//////                }
+//////
+//////            }
+////            if (lastUpdateTime != 0L && currentSteps > lastStepCount) {
+////                // Если шаги увеличились, добавляем время между обновлениями к общей сумме
+////                val timeDeltaMillis = currentTime - lastUpdateTime
+////                val timeDeltaSeconds = timeDeltaMillis / 1000
+////                if (simulateSteps) {
+////                    totalActiveTimeSeconds += 1
+////                } else {
+////                    totalActiveTimeSeconds += timeDeltaSeconds
+////                }
+////            }
+////            lastUpdateTime = currentTime
+////            lastStepCount = currentSteps
+////            viewModel.saveSteps(currentSteps+1)
+////            activity?.runOnUiThread {
+////                updateUI(currentSteps)
+////            }
+//////            currentSteps = totalSteps.toInt() - previousTotalSteps.toInt()
+//////            val calories = (currentSteps * 0.04).toInt()
+//////            val distanceKm = (currentSteps * 0.75 / 1000).toInt()
+//////            activity?.runOnUiThread{
+//////                stepTextView.text = "$currentSteps"
+//////                circularProgressBar.setProgressWithAnimation(currentSteps.toFloat())
+//////                totalCaloriesTextView.text = "$calories"
+//////                totalStepsTextView.text = "$distanceKm km"
+//////
+//////            }
+////        }
+//        if (event?.sensor?.type == Sensor.TYPE_STEP_COUNTER) {
+//            val totalSteps = event.values[0].toInt()
+//            if (initialStepCount == null) {
+//                initialStepCount = totalSteps
+//            }
+//            val stepsSinceStart = totalSteps - (initialStepCount ?: totalSteps)
+//            viewModel.saveSteps(stepsSinceStart+1)
+//            val currentTime = System.currentTimeMillis()
+//            if (lastUpdateTime != 0L && stepsSinceStart > lastStepCount) {
 //                val timeDeltaMillis = currentTime - lastUpdateTime
-//                val timeDeltaSeconds = timeDeltaMillis / 1000
-//                if (simulateSteps) {
-//                    totalActiveTimeSeconds += 1
-//                } else {
-//                    totalActiveTimeSeconds += timeDeltaSeconds
-//                }
+//                totalActiveTimeSeconds += timeDeltaMillis / 1000
 //            }
 //            lastUpdateTime = currentTime
-//            lastStepCount = currentSteps
-//            viewModel.saveSteps(currentSteps+1)
-//            activity?.runOnUiThread {
-//                updateUI(currentSteps)
-//            }
-////            currentSteps = totalSteps.toInt() - previousTotalSteps.toInt()
-////            val calories = (currentSteps * 0.04).toInt()
-////            val distanceKm = (currentSteps * 0.75 / 1000).toInt()
-////            activity?.runOnUiThread{
-////                stepTextView.text = "$currentSteps"
-////                circularProgressBar.setProgressWithAnimation(currentSteps.toFloat())
-////                totalCaloriesTextView.text = "$calories"
-////                totalStepsTextView.text = "$distanceKm km"
-////
-////            }
+//            lastStepCount = stepsSinceStart
 //        }
-        if (event?.sensor?.type == Sensor.TYPE_STEP_COUNTER) {
-            val totalSteps = event.values[0].toInt()
-            if (initialStepCount == null) {
-                initialStepCount = totalSteps
-            }
-            val stepsSinceStart = totalSteps - (initialStepCount ?: totalSteps)
-            viewModel.saveSteps(stepsSinceStart+1)
-            val currentTime = System.currentTimeMillis()
-            if (lastUpdateTime != 0L && stepsSinceStart > lastStepCount) {
-                val timeDeltaMillis = currentTime - lastUpdateTime
-                totalActiveTimeSeconds += timeDeltaMillis / 1000
-            }
-            lastUpdateTime = currentTime
-            lastStepCount = stepsSinceStart
-        }
-    }
+//    }
     private fun updateUI(steps: Int) {
-//        stepTextView.text = "Шаги: $steps"
-//        circularProgressBar.setProgressWithAnimation(steps.toFloat())
-//        val calories = (currentSteps * 0.04).toInt()
-//        totalCaloriesTextView.text = "$calories"
-//        val activeTimeMinutes = (totalActiveTimeSeconds / 60).toInt()
-//        Log.d("MainFragment", "lastDatecheck: $activeTimeMinutes")
-//        totalDistanceTextView.text = "${activeTimeMinutes}m"
-//
-//        // Рассчитываем и обновляем расстояние
-//        val distanceKm = (currentSteps * 0.75 / 1000).toInt() // 0.75 метра на шаг, переводим в км
-//        totalStepsTextView.text = "$distanceKm km"
         stepTextView.text = "Шаги: $steps"
         circularProgressBar.setProgressWithAnimation(steps.toFloat())
-        val calories = (steps * 0.04).toInt()
-        totalCaloriesTextView.text = "$calories"
+
         val activeTimeMinutes = (totalActiveTimeSeconds / 60).toInt()
+
+        val height = sharedPreferences.getInt("height", 190)
+        val weight = sharedPreferences.getFloat("weight", 95.5f)
+        val gender = sharedPreferences.getInt("gender", 0)
+        val age = sharedPreferences.getInt("age", 30)
+
+        val stepLength = if (gender == 0) {
+            height * 0.415 / 100 // Для мужчин
+        } else {
+            height * 0.413 / 100 // Для женщин
+        }
+
+        val distanceMeters = steps * stepLength
+        val distanceKm = distanceMeters / 1000
+
+        if (steps < 1000) {
+            totalStepsTextView.text = String.format("%.0fм", distanceMeters)
+        } else {
+            totalStepsTextView.text = String.format("%.2fкм%.0fм ", distanceKm, distanceMeters)
+        }
+        val walkingSpeed = if (gender == 0) 4800.0 else 4500.0
+        val timeHours = distanceMeters / walkingSpeed
+        val caloriesBurned = 3.8 * weight * timeHours
+        val finalCalories = if (caloriesBurned < 0) 0.0 else caloriesBurned
+        totalCaloriesTextView.text = String.format("%.0f", finalCalories)
         totalDistanceTextView.text = "${activeTimeMinutes}m"
-        val distanceKm = (steps * 0.75 / 1000).toInt()
-        totalStepsTextView.text = "$distanceKm km"
+}
+
+    private fun startStepTrackingService() {
+
     }
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-//    private fun startStepTrackingService() {
-//        StepTrackingService.startService(requireContext())
-//    }
 
 //    private fun resetSteps() {
 //        stepTextView.setOnClickListener {
