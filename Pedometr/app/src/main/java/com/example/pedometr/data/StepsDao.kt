@@ -11,10 +11,8 @@ import kotlinx.coroutines.flow.Flow
 interface StepsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(stepEntity: StepEntry)
-
     @Query("SELECT * FROM steps WHERE date = :date")
     fun getStepsForDate(date: String): Flow<StepEntry?>
-
     @Query("SELECT * FROM steps")
     fun getAllSteps(): Flow<List<StepEntry>>
     @Query("SELECT * FROM steps WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")

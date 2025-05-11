@@ -19,7 +19,15 @@
             android:text="Профиль"
             android:textColor="@color/design_default_color_on_secondary"
             android:textSize="24sp" />
-
+        <!-- Имя студента -->
+        <TextView
+            android:id="@+id/studentNameTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text=""
+            android:textColor="@color/design_default_color_on_secondary"
+            android:textSize="18sp" />
         <!-- Фитнес-цели -->
         <TextView
             android:layout_width="wrap_content"
@@ -207,6 +215,33 @@
                 android:textColor="@color/design_default_color_on_secondary"
                 android:textSize="16sp" />
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@android:color/transparent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp">
 
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Группа"
+                android:textColor="@color/design_default_color_on_secondary"
+                android:textSize="16sp" />
+
+            <EditText
+                android:id="@+id/groupEditText"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minHeight="48dp"
+                android:background="@android:color/transparent"
+                android:gravity="center_vertical"
+                android:text=""
+                android:textColor="@color/design_default_color_on_secondary"
+                android:textSize="16sp" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

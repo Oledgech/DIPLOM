@@ -127,7 +127,6 @@ class StepTrackingService: Service(), SensorEventListener {
                 0,
                 100000
             )
-            // Load last saved steps
             serviceScope.launch {
                 val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val todaySteps = stepRepository.getStepsForDate(today).first()

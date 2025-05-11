@@ -20,6 +20,7 @@ class AllDataFragment : Fragment() {
     private val viewModel: StepViewModel by viewModels()
     private lateinit var stepsRecyclerView: RecyclerView
     private val stepsAdapter = StepsAdapter()
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?

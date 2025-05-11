@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.Button
+import android.widget.EditText
 import android.widget.NumberPicker
 import android.widget.Spinner
 import android.widget.TextView
@@ -26,6 +27,8 @@ class UserFragment : Fragment() {
     lateinit var heightTextView: TextView
     private lateinit var genderSpinner: Spinner
     private lateinit var birthDateTextView: TextView
+    private lateinit var groupEditText: EditText
+    private lateinit var studentNameTextView: TextView
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -104,7 +107,24 @@ class UserFragment : Fragment() {
         birthDateTextView.setOnClickListener {
             showDatePickerDialog()
         }
+        groupEditText = view.findViewById(R.id.groupEditText)
 
+        // Загрузка сохраненной группы
+        val savedGroup = sharedPreferences.getString("moodle_group", "")
+        groupEditText.setText(savedGroup)
+
+        // Сохранение группы при изменении текста
+        groupEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val newGroup = groupEditText.text.toString().trim()
+                sharedPreferences.edit().putString("moodle_group", newGroup).apply()
+            }
+        }
+        studentNameTextView = view.findViewById(R.id.studentNameTextView)
+
+        // Загрузка сохраненного имени
+        val savedFullName = sharedPreferences.getString("moodle_fullname", "Студент")
+        studentNameTextView.text = "Студент $savedFullName"
         return view
     }
 

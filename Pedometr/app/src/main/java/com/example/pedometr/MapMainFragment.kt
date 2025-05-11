@@ -24,20 +24,17 @@ class MapMainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Set up window insets listener for edge-to-edge display
         ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Set up button click listener
         view.findViewById<View>(R.id.button2)?.setOnClickListener {
             startNewActivity(it)
         }
     }
 
-    // Function to start MainActivity with username
     private fun startNewActivity(v: View) {
         val intent = Intent(requireContext(), MapBuilder::class.java)
         val nameText = view?.findViewById<EditText>(R.id.editTextNumber)

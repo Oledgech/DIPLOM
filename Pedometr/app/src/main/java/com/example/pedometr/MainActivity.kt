@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageButton
 import android.widget.Toast
 import android.widget.Toolbar
@@ -22,36 +23,73 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var toolbar: Toolbar
     private lateinit var db: AppDatabase
+    private lateinit var bottomNavigationView: BottomNavigationView
+    private lateinit var logginButton: ImageButton
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
 
-        bottomNavigationView.selectedItemId = R.id.nav_main
-        val logginButton = findViewById<ImageButton>(R.id.logginButton)
-        logginButton.setOnClickListener {
-            loadFragment(LoginFragment())
-        }
-        if (savedInstanceState == null) {
-            loadFragment(MainFragment())
-        }
+        bottomNavigationView = findViewById(R.id.bottomNavigationView)
+        logginButton = findViewById(R.id.logginButton)
 
-        bottomNavigationView.setOnNavigationItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_main -> {
+        val sharedPreferences = getSharedPreferences("UserPrefs", MODE_PRIVATE)
+        val token = sharedPreferences.getString("moodle_token", null)
+        val isStudent = sharedPreferences.getBoolean("is_student", false)
+
+        if (token == null) {
+            bottomNavigationView.visibility = View.GONE
+            logginButton.isEnabled = false
+            if (savedInstanceState == null) {
+                loadFragment(LoginFragment())
+            }
+        } else {
+            if (!isStudent) {
+                bottomNavigationView.menu.clear()
+                bottomNavigationView.inflateMenu(R.menu.bottom_nav_teacher_menu)
+                bottomNavigationView.visibility = View.VISIBLE
+                logginButton.isEnabled = true
+                if (savedInstanceState == null) {
+                    loadFragment(ActivityListFragment())
+                }
+                bottomNavigationView.setOnNavigationItemSelectedListener { item ->
+                    when (item.itemId) {
+                        R.id.nav_main -> {
+                            loadFragment(ActivityListFragment())
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            } else {
+                bottomNavigationView.menu.clear()
+                bottomNavigationView.inflateMenu(R.menu.bottom_nav_menu)
+                bottomNavigationView.visibility = View.VISIBLE
+                logginButton.isEnabled = true
+                bottomNavigationView.selectedItemId = R.id.nav_main
+                if (savedInstanceState == null) {
                     loadFragment(MainFragment())
-                    true
                 }
-                R.id.nav_stat -> {
-                    loadFragment(StatisticsFragment())
-                    true
+                bottomNavigationView.setOnNavigationItemSelectedListener { item ->
+                    when (item.itemId) {
+                        R.id.nav_main -> {
+                            loadFragment(MainFragment())
+                            true
+                        }
+                        R.id.nav_stat -> {
+                            loadFragment(StatisticsFragment())
+                            true
+                        }
+                        R.id.nav_user -> {
+                            loadFragment(UserFragment())
+                            true
+                        }
+                        else -> false
+                    }
                 }
-                R.id.nav_user -> {
-                    loadFragment(UserFragment())
-                    true
-                }
-                else -> false
+            }
+            logginButton.setOnClickListener {
+                loadFragment(LoginFragment())
             }
         }
 
@@ -77,5 +115,63 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
+    }
+
+    fun onLoginSuccess() {
+        val sharedPreferences = getSharedPreferences("UserPrefs", MODE_PRIVATE)
+        val token = sharedPreferences.getString("moodle_token", null)
+        val isStudent = sharedPreferences.getBoolean("is_student", false)
+
+        if (token != null) {
+            if (!isStudent) {
+                bottomNavigationView.menu.clear()
+                bottomNavigationView.inflateMenu(R.menu.bottom_nav_teacher_menu)
+                bottomNavigationView.visibility = View.VISIBLE
+                logginButton.isEnabled = true
+                loadFragment(ActivityListFragment())
+                bottomNavigationView.setOnNavigationItemSelectedListener { item ->
+                    when (item.itemId) {
+                        R.id.nav_main -> {
+                            loadFragment(ActivityListFragment())
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            } else {
+                bottomNavigationView.menu.clear()
+                bottomNavigationView.inflateMenu(R.menu.bottom_nav_menu)
+                bottomNavigationView.visibility = View.VISIBLE
+                logginButton.isEnabled = true
+                bottomNavigationView.selectedItemId = R.id.nav_main
+                loadFragment(MainFragment())
+                bottomNavigationView.setOnNavigationItemSelectedListener { item ->
+                    when (item.itemId) {
+                        R.id.nav_main -> {
+                            loadFragment(MainFragment())
+                            true
+                        }
+                        R.id.nav_stat -> {
+                            loadFragment(StatisticsFragment())
+                            true
+                        }
+                        R.id.nav_user -> {
+                            loadFragment(UserFragment())
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            }
+            logginButton.setOnClickListener {
+                loadFragment(LoginFragment())
+            }
+        }
+    }
+
+    fun onLogout() {
+        bottomNavigationView.visibility = View.GONE
+        logginButton.isEnabled = false
+        loadFragment(LoginFragment())
     }
 }

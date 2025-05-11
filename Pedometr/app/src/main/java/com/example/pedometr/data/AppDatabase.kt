@@ -8,5 +8,4 @@ import androidx.room.RoomDatabase
 @Database(entities = [StepEntry::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun stepsDao(): StepsDao
-
 }
