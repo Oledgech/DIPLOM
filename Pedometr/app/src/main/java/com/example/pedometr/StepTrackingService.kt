@@ -13,9 +13,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.LifecycleService
 import com.example.pedometr.data.StepRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +22,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.security.Provider
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -63,7 +60,6 @@ class StepTrackingService: Service(), SensorEventListener {
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification())
         setupSensor()
-        Log.d("Msadfsa", "Savedфыуцй")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

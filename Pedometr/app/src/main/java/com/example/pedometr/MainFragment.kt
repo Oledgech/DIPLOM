@@ -161,7 +161,6 @@ class MainFragment : Fragment(), SensorEventListener{
             initializeSensor()
         }
     }
-    //Сенсор
     private fun initializeSensor() {
         sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
         stepCounterSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
@@ -170,7 +169,6 @@ class MainFragment : Fragment(), SensorEventListener{
         } else {
             stepTextView.text = "Step Counter Sensor not available!"
             isCounterSensorPresent = false
-            Toast.makeText(requireContext(), "No step sensor available", Toast.LENGTH_LONG).show()
         }
     }
     override fun onResume()

@@ -1,6 +1,8 @@
 package com.example.pedometr
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -8,9 +10,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.MutableLiveData
 import com.example.pedometr.data.StepViewModel
+import com.example.pedometr.databinding.FragmentStatisticsBinding
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
@@ -22,69 +27,114 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.util.*
+
 @AndroidEntryPoint
 class StatisticsFragment : Fragment() {
 
-    private lateinit var avgStepsTextView: TextView
-    private lateinit var totalStepsTextView: TextView
-    private lateinit var barChart: BarChart
-    private lateinit var btn7Days: Button
-    private lateinit var btn30Days: Button
-    private lateinit var btn6Months: Button
-    private lateinit var btn1Year: Button
-    private lateinit var btnAllData: Button
+    private var _binding: FragmentStatisticsBinding? = null
+    private val binding get() = _binding!!
     private val viewModel: StepViewModel by viewModels()
+    private val uiState = MutableLiveData<UiState>()
+    private var currentDays: Int = 7
+
+    sealed class UiState {
+        object Idle : UiState()
+        object Loading : UiState()
+        object Success : UiState()
+        data class Error(val message: String) : UiState()
+        object Empty : UiState()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_statistics, container, false)
+        _binding = FragmentStatisticsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        avgStepsTextView = view.findViewById(R.id.avgStepsTextView)
-        totalStepsTextView = view.findViewById(R.id.totalStepsTextView)
-        barChart = view.findViewById(R.id.barChart)
-        btn7Days = view.findViewById(R.id.btn7Days)
-        btn30Days = view.findViewById(R.id.btn30Days)
-        btn6Months = view.findViewById(R.id.btn6Months)
-        btn1Year = view.findViewById(R.id.btn1Year)
-        btnAllData = view.findViewById(R.id.btnAllData)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
+        uiState.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                is UiState.Idle -> {
+                    binding.loadingProgressBar.visibility = View.GONE
+                    binding.errorTextView.visibility = View.GONE
+                    binding.retryButton.visibility = View.GONE
+                    binding.statisticseContent.visibility = View.VISIBLE
+                }
+                is UiState.Loading -> {
+                    binding.loadingProgressBar.visibility = View.VISIBLE
+                    binding.errorTextView.visibility = View.GONE
+                    binding.retryButton.visibility = View.GONE
+                    binding.statisticseContent.visibility = View.GONE
+                }
+                is UiState.Success -> {
+                    binding.loadingProgressBar.visibility = View.GONE
+                    binding.errorTextView.visibility = View.GONE
+                    binding.retryButton.visibility = View.GONE
+                    binding.statisticseContent.visibility = View.VISIBLE
+                }
+                is UiState.Error -> {
+                    binding.loadingProgressBar.visibility = View.GONE
+                    binding.errorTextView.visibility = View.VISIBLE
+                    binding.errorTextView.text = state.message
+                    binding.retryButton.visibility = View.VISIBLE
+                    binding.statisticseContent.visibility = View.GONE
+                    Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
+                }
+                is UiState.Empty -> {
+                    binding.loadingProgressBar.visibility = View.GONE
+                    binding.errorTextView.visibility = View.VISIBLE
+                    binding.errorTextView.text = "Данные отсутствуют"
+                    binding.retryButton.visibility = View.GONE
+                    binding.statisticseContent.visibility = View.GONE
+                }
+            }
+        }
         updateStatistics(7)
-
-        btn7Days.setOnClickListener {
-            setButtonActive(btn7Days)
-            setButtonInactive(btn30Days, btn6Months, btn1Year)
+        binding.btn7Days.setOnClickListener {
+            setButtonActive(binding.btn7Days)
+            setButtonInactive(binding.btn30Days, binding.btn6Months, binding.btn1Year)
+            currentDays = 7
             updateStatistics(7)
         }
-
-        btn30Days.setOnClickListener {
-            setButtonActive(btn30Days)
-            setButtonInactive(btn7Days, btn6Months, btn1Year)
+        binding.btn30Days.setOnClickListener {
+            setButtonActive(binding.btn30Days)
+            setButtonInactive(binding.btn7Days, binding.btn6Months, binding.btn1Year)
+            currentDays = 30
             updateStatistics(30)
         }
-
-        btn6Months.setOnClickListener {
-            setButtonActive(btn6Months)
-            setButtonInactive(btn7Days, btn30Days, btn1Year)
+        binding.btn6Months.setOnClickListener {
+            setButtonActive(binding.btn6Months)
+            setButtonInactive(binding.btn7Days, binding.btn30Days, binding.btn1Year)
+            currentDays = 180
             updateStatistics(180)
         }
-
-        btn1Year.setOnClickListener {
-            setButtonActive(btn1Year)
-            setButtonInactive(btn7Days, btn30Days, btn6Months)
+        binding.btn1Year.setOnClickListener {
+            setButtonActive(binding.btn1Year)
+            setButtonInactive(binding.btn7Days, binding.btn30Days, binding.btn6Months)
+            currentDays = 365
             updateStatistics(365)
         }
 
-        btnAllData.setOnClickListener {
-            val allDataFragment= AllDataFragment()
+        binding.btnAllData.setOnClickListener {
+            val allDataFragment = AllDataFragment()
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, allDataFragment)
                 .addToBackStack(null)
                 .commit()
         }
-
-        return view
+        binding.retryButton.setOnClickListener {
+            if (!isNetworkAvailable(requireContext())) {
+                uiState.value = UiState.Error("Нет подключения к интернету")
+            } else {
+                updateStatistics(currentDays)
+            }
+        }
     }
+
     private fun setButtonActive(button: Button) {
         button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF2196F3.toInt())) // Синий фон
         button.setTextColor(android.graphics.Color.WHITE)
@@ -97,57 +147,64 @@ class StatisticsFragment : Fragment() {
             button.setBackgroundResource(R.drawable.button_border)
         }
     }
+
     private fun updateStatistics(days: Int) {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val calendar = Calendar.getInstance()
-        val endDate = dateFormat.format(calendar.time) // Текущая дата
-        calendar.add(Calendar.DAY_OF_YEAR, -days + 1)
-        val startDate = dateFormat.format(calendar.time) // Дата N дней назад
+        uiState.value = UiState.Loading
 
-        // Логирование для отладки
-        Log.d("StatisticsFragment", "startDate: $startDate, endDate: $endDate")
+        try {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val calendar = Calendar.getInstance()
+            val endDate = dateFormat.format(calendar.time)
+            calendar.add(Calendar.DAY_OF_YEAR, -days + 1)
+            val startDate = dateFormat.format(calendar.time)
 
-        // Получение данных из Room через StepViewModel
-        val stepsData = runBlocking {
-            viewModel.getStepsForRange(startDate, endDate).first()
+            val stepsData = runBlocking {
+                viewModel.getStepsForRange(startDate, endDate).first()
+            }
+
+            if (stepsData.isEmpty()) {
+                uiState.value = UiState.Empty
+                return
+            }
+
+            val stepsPerDay = mutableListOf<Int>()
+            val labels = mutableListOf<String>()
+            var totalSteps = 0
+
+            val stepsMap = stepsData.associateBy { it.date }
+
+            calendar.time = dateFormat.parse(startDate)!!
+            val endDateParsed = dateFormat.parse(endDate)!!
+            while (calendar.time <= endDateParsed) {
+                val date = dateFormat.format(calendar.time)
+                val steps = stepsMap[date]?.steps ?: 0
+                stepsPerDay.add(steps)
+                totalSteps += steps
+                labels.add(getDayOfWeek(calendar.get(Calendar.DAY_OF_WEEK)))
+                calendar.add(Calendar.DAY_OF_YEAR, 1)
+            }
+
+            val avgSteps = if (stepsPerDay.isNotEmpty()) totalSteps / stepsPerDay.size else 0
+
+            binding.avgStepsTextView.text = "В среднем\n$avgSteps"
+            binding.totalStepsTextView.text = "Всего\n$totalSteps"
+
+            val entries = stepsPerDay.mapIndexed { index, steps -> BarEntry(index.toFloat(), steps.toFloat()) }
+            val barDataSet = BarDataSet(entries, "Шаги")
+            barDataSet.colors = ColorTemplate.MATERIAL_COLORS.toList()
+            val barData = BarData(barDataSet)
+            barData.barWidth = 0.9f
+
+            binding.barChart.data = barData
+            binding.barChart.description.isEnabled = false
+            binding.barChart.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+            binding.barChart.invalidate()
+
+            uiState.value = UiState.Success
+        } catch (e: Exception) {
+            uiState.value = UiState.Error("Ошибка загрузки данных: ${e.message}")
         }
-
-        val stepsPerDay = mutableListOf<Int>()
-        val labels = mutableListOf<String>()
-        var totalSteps = 0
-
-        // Создаем карту для быстрого доступа к шагам по дате
-        val stepsMap = stepsData.associateBy { it.date }
-
-        // Заполняем данные для графика
-        calendar.time = dateFormat.parse(startDate)!!
-        val endDateParsed = dateFormat.parse(endDate)!!
-        while (calendar.time <= endDateParsed) {
-            val date = dateFormat.format(calendar.time)
-            val steps = stepsMap[date]?.steps ?: 0
-            stepsPerDay.add(steps)
-            totalSteps += steps
-            labels.add(getDayOfWeek(calendar.get(Calendar.DAY_OF_WEEK)))
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-        }
-
-        val avgSteps = if (stepsPerDay.isNotEmpty()) totalSteps / stepsPerDay.size else 0
-
-        avgStepsTextView.text = "В среднем\n$avgSteps"
-        totalStepsTextView.text = "Всего\n$totalSteps"
-
-        val entries = stepsPerDay.mapIndexed { index, steps -> BarEntry(index.toFloat(), steps.toFloat()) }
-        val barDataSet = BarDataSet(entries, "Шаги")
-        barDataSet.colors = ColorTemplate.MATERIAL_COLORS.toList()
-        val barData = BarData(barDataSet)
-        barData.barWidth = 0.9f
-
-        barChart.data = barData
-        barChart.description.isEnabled = false
-        barChart.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
-        barChart.invalidate()
     }
-
 
     private fun getDayOfWeek(day: Int): String {
         return when (day) {
@@ -160,5 +217,17 @@ class StatisticsFragment : Fragment() {
             Calendar.SUNDAY -> "ВС"
             else -> ""
         }
+    }
+
+    private fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

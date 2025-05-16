@@ -4,87 +4,125 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:gravity="center">
 
+    <!-- Основной контейнер для контента -->
     <LinearLayout
+        android:id="@+id/statisticse_content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btn7Days"
+                style="@style/PeriodButtonActive"
+                android:layout_width="74dp"
+                android:layout_height="wrap_content"
+                android:text="7 дней" />
+
+            <Button
+                android:id="@+id/btn30Days"
+                style="@style/PeriodButtonInactive"
+                android:layout_width="76dp"
+                android:layout_height="wrap_content"
+                android:text="30 дней" />
+
+            <Button
+                android:id="@+id/btn6Months"
+                style="@style/PeriodButtonInactive"
+                android:layout_width="98dp"
+                android:layout_height="wrap_content"
+                android:text="6 месяцев" />
+
+            <Button
+                android:id="@+id/btn1Year"
+                style="@style/PeriodButtonInactive"
+                android:layout_width="62dp"
+                android:layout_height="wrap_content"
+                android:text="1 год" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp">
+
+            <TextView
+                android:id="@+id/avgStepsTextView"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="В среднем\n0"
+                android:textAlignment="center"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/totalStepsTextView"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Всего\n0"
+                android:textAlignment="center"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <com.github.mikephil.charting.charts.BarChart
+            android:id="@+id/barChart"
+            android:layout_width="match_parent"
+            android:layout_height="457dp"
+            android:layout_marginTop="16dp" />
 
         <Button
-            android:id="@+id/btn7Days"
-            style="@style/PeriodButtonActive"
-            android:layout_width="74dp"
+            android:id="@+id/btnAllData"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="7 дней" />
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/button_border"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:text="Все данные"
+            android:textColor="@android:color/black"
+            android:textSize="14sp" />
 
-        <Button
-            android:id="@+id/btn30Days"
-            style="@style/PeriodButtonInactive"
-            android:layout_width="76dp"
-            android:layout_height="wrap_content"
-            android:text="30 дней" />
-
-        <Button
-            android:id="@+id/btn6Months"
-            style="@style/PeriodButtonInactive"
-            android:layout_width="98dp"
-            android:layout_height="wrap_content"
-            android:text="6 месяцев" />
-
-        <Button
-            android:id="@+id/btn1Year"
-            style="@style/PeriodButtonInactive"
-            android:layout_width="62dp"
-            android:layout_height="wrap_content"
-            android:text="1 год" />
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginTop="16dp">
-
-        <TextView
-            android:id="@+id/avgStepsTextView"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="В среднем\n0"
-            android:textAlignment="center"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/totalStepsTextView"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Всего\n0"
-            android:textAlignment="center"
-            android:textSize="16sp" />
-    </LinearLayout>
-
-    <com.github.mikephil.charting.charts.BarChart
-        android:id="@+id/barChart"
-        android:layout_width="match_parent"
-        android:layout_height="457dp"
-        android:layout_marginTop="16dp" />
-
-    <Button
-        android:id="@+id/btnAllData"
+    <!-- ProgressBar для загрузки -->
+    <ProgressBar
+        android:id="@+id/loading_progress_bar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="16dp"
-        android:background="@drawable/button_border"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp"
-        android:text="Все данные"
-        android:textColor="@android:color/black"
-        android:textSize="14sp" />
+        android:visibility="gone" />
 
+    <!-- TextView для ошибок -->
+    <TextView
+        android:id="@+id/error_text_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Ошибка загрузки данных"
+        android:textColor="@color/red"
+        android:textSize="16sp" />
+
+    <!-- Кнопка для повторной попытки -->
+    <Button
+        android:id="@+id/retry_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Попробовать снова"
+        android:backgroundTint="#2196F3"
+        android:textColor="@android:color/white"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp" />
 
 </LinearLayout>

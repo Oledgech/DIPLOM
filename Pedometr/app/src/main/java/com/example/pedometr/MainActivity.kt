@@ -1,8 +1,5 @@
 @file:Suppress("DEPRECATION")
-
 package com.example.pedometr
-
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -15,10 +12,8 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.pedometr.data.AppDatabase
-
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import dagger.hilt.android.AndroidEntryPoint
-
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var toolbar: Toolbar
@@ -29,14 +24,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         bottomNavigationView = findViewById(R.id.bottomNavigationView)
         logginButton = findViewById(R.id.logginButton)
-
         val sharedPreferences = getSharedPreferences("UserPrefs", MODE_PRIVATE)
         val token = sharedPreferences.getString("moodle_token", null)
         val isStudent = sharedPreferences.getBoolean("is_student", false)
-
         if (token == null) {
             bottomNavigationView.visibility = View.GONE
             logginButton.isEnabled = false
@@ -44,7 +36,7 @@ class MainActivity : AppCompatActivity() {
                 loadFragment(LoginFragment())
             }
         } else {
-            if (!isStudent) {
+            if (isStudent) {
                 bottomNavigationView.menu.clear()
                 bottomNavigationView.inflateMenu(R.menu.bottom_nav_teacher_menu)
                 bottomNavigationView.visibility = View.VISIBLE
@@ -95,7 +87,6 @@ class MainActivity : AppCompatActivity() {
 
         requestPermission()
     }
-
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun requestPermission() {
         val requestPermissionLauncher = registerForActivityResult(
@@ -110,13 +101,11 @@ class MainActivity : AppCompatActivity() {
             requestPermissionLauncher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
         }
     }
-
     private fun loadFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
     }
-
     fun onLoginSuccess() {
         val sharedPreferences = getSharedPreferences("UserPrefs", MODE_PRIVATE)
         val token = sharedPreferences.getString("moodle_token", null)
@@ -168,7 +157,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     fun onLogout() {
         bottomNavigationView.visibility = View.GONE
         logginButton.isEnabled = false

@@ -15,7 +15,7 @@ import com.example.pedometr.R
 import com.example.pedometr.databinding.ItemActivityBinding
 import com.example.pedometr.mariaDb.UserActivity
 
-class ActivityAdapter: ListAdapter<HighlightedActivity, ActivityAdapter.ActivityViewHolder>(ActivityDiffCallback())  {
+class ActivityAdapter : ListAdapter<HighlightedActivity, ActivityAdapter.ActivityViewHolder>(ActivityDiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ActivityViewHolder {
         val binding = ItemActivityBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ActivityViewHolder(binding)
@@ -30,7 +30,6 @@ class ActivityAdapter: ListAdapter<HighlightedActivity, ActivityAdapter.Activity
             val activity = highlightedActivity.activity
             val matchedFields = highlightedActivity.matchedFields
 
-            // Устанавливаем текст для каждого поля
             binding.userGroupText.text = applyHighlight(activity.user_group, matchedFields["user_group"])
             binding.activityDateText.text = applyHighlight(activity.activity_date, matchedFields["activity_date"])
             binding.stepsText.text = applyHighlight(activity.steps.toString(), matchedFields["steps"])
@@ -38,19 +37,20 @@ class ActivityAdapter: ListAdapter<HighlightedActivity, ActivityAdapter.Activity
             binding.activeTimeText.text = applyHighlight("${activity.active_time_minutes} min", matchedFields["active_time_minutes"])
         }
 
-        private fun applyHighlight(text: String, matchedText: String?): SpannableString {
+        private fun applyHighlight(text: String, matchedQuery: String?): SpannableString {
             val spannable = SpannableString(text)
-            if (matchedText != null) {
-                val query = matchedText.lowercase()
-                val start = text.lowercase().indexOf(query)
-                if (start != -1) {
-                    val end = start + query.length
+            if (!matchedQuery.isNullOrBlank()) {
+                val textLower = text.lowercase()
+                var start = textLower.indexOf(matchedQuery)
+                while (start != -1) {
+                    val end = start + matchedQuery.length
                     spannable.setSpan(
                         BackgroundColorSpan(Color.YELLOW),
                         start,
                         end,
                         Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                     )
+                    start = textLower.indexOf(matchedQuery, start + 1)
                 }
             }
             return spannable

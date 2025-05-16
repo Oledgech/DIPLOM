@@ -1,10 +1,7 @@
 package com.example.pedometr.Worker
-
 import android.content.Context
 import android.util.Log
 import androidx.hilt.work.HiltWorker
-
-
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.NetworkType
@@ -17,7 +14,6 @@ import com.example.pedometr.mariaDb.ApiClient
 import com.example.pedometr.mariaDb.UserActivity
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -26,8 +22,6 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-
 @HiltWorker
 class DailyActivitySyncWorker @AssistedInject constructor(@Assisted  context: Context, @Assisted params: WorkerParameters, private val stepRepository: StepRepository ) : CoroutineWorker(context, params)
 {
@@ -68,7 +62,6 @@ class DailyActivitySyncWorker @AssistedInject constructor(@Assisted  context: Co
             Result.retry()
         }
     }
-
     companion object {
         private const val WORK_NAME = "DailyActivitySync"
 
@@ -89,7 +82,6 @@ class DailyActivitySyncWorker @AssistedInject constructor(@Assisted  context: Co
                 .setInitialDelay(initialDelay, TimeUnit.MINUTES)
                 .setConstraints(constraints)
                 .build()
-
             WorkManager.getInstance(context)
                 .enqueueUniquePeriodicWork(WORK_NAME, androidx.work.ExistingPeriodicWorkPolicy.KEEP, workRequest)
 //            val constraints = Constraints.Builder()
@@ -103,7 +95,6 @@ class DailyActivitySyncWorker @AssistedInject constructor(@Assisted  context: Co
 //
 //            WorkManager.getInstance(context)
 //                .enqueueUniqueWork(WORK_NAME, androidx.work.ExistingWorkPolicy.REPLACE, workRequest)
-
         }
     }
 }

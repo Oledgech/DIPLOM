@@ -1,5 +1,8 @@
 package com.example.pedometr.List
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -10,53 +13,82 @@ import com.example.pedometr.mariaDb.UserActivity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
-class ActivityListViewModel  @Inject constructor() : ViewModel() {
+class ActivityListViewModel @Inject constructor() : ViewModel() {
     private val _activities = MutableLiveData<List<UserActivity>>()
     private val _filteredActivities = MutableLiveData<List<HighlightedActivity>>()
     val filteredActivities: LiveData<List<HighlightedActivity>> get() = _filteredActivities
 
+    private val _uiState = MutableLiveData<UiState>()
+    val uiState: LiveData<UiState> get() = _uiState
+
     private var selectedDate: LocalDate? = null
-    private var sortField: String? = null // Текущий критерий сортировки
-    private var sortOrder = mapOf<String, Boolean>(
+    private var sortField: String? = null
+    private var sortOrder = mapOf(
         "distance" to false,
         "time" to false,
         "steps" to false,
         "date" to false,
-        "emissions" to false
+        "group" to false
     )
 
-    init {
-        fetchActivities()
+    sealed class UiState {
+        object Loading : UiState()
+        data class Success(val data: List<HighlightedActivity>) : UiState()
+        data class Error(val message: String) : UiState()
+        object Empty : UiState()
     }
 
-    fun fetchActivities() {
+    fun fetchActivities(context: Context) {
+        if (!isNetworkAvailable(context)) {
+            _uiState.value = UiState.Error("Нет подключения к интернету")
+            _activities.value = emptyList()
+            applyFiltersAndSort()
+            return
+        }
+
+        _uiState.value = UiState.Loading
         viewModelScope.launch {
             try {
+                Log.d("ActivityListViewModel", "Making API call to https://node-production-907e.up.railway.app/activity")
                 val response = ApiClient.activityApi.getAllActivities()
-                Log.d("ActivityListViewModel", "Fetched activities: $response")
+                Log.d("ActivityListViewModel", "API response: $response")
                 _activities.value = response
                 applyFiltersAndSort()
+                _uiState.value = if (response.isEmpty()) UiState.Empty else UiState.Success(_filteredActivities.value ?: emptyList())
             } catch (e: Exception) {
                 Log.e("ActivityListViewModel", "Error fetching activities: ${e.message}", e)
                 _activities.value = emptyList()
                 applyFiltersAndSort()
+                val errorMessage = when {
+                    e.message?.contains("Unable to resolve host") == true -> "Ошибка получения данных."
+                    e.message?.contains("timeout") == true -> "Превышено время ожидания. Ошибка Получения данных."
+                    else -> "Ошибка загрузки: ${e.message}"
+                }
+                _uiState.value = UiState.Error(errorMessage)
             }
         }
     }
 
+    private fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
     fun setSelectedDate(date: LocalDate?) {
         selectedDate = date
-        Log.d("ActivityListViewModel", "Selected date set to: $date")
         applyFiltersAndSort()
     }
+
     fun getSelectedDate(): LocalDate? {
         return selectedDate
     }
+
     fun resetFilters() {
         selectedDate = null
         sortField = null
@@ -65,73 +97,71 @@ class ActivityListViewModel  @Inject constructor() : ViewModel() {
     }
 
     fun toggleSort(field: String) {
-        sortField = field // Обновляем текущий критерий сортировки
+        sortField = field
         sortOrder = sortOrder.toMutableMap().apply {
             this[field] = !this[field]!!
         }
-        Log.d("ActivityListViewModel", "Sorting by $field, ascending: ${sortOrder[field]}")
         applyFiltersAndSort()
     }
 
     fun search(query: String?) {
         applyFiltersAndSort(query)
     }
+
     fun getSortState(): Pair<String?, Boolean?> {
         return sortField to sortOrder[sortField]
     }
-    private fun applyFiltersAndSort(query: String? = null) {
-        var filtered = _activities.value ?: emptyList()
 
-        // Фильтрация по дате
+    private fun applyFiltersAndSort(query: String? = null) {
+        val queryLower = query?.lowercase() ?: ""
+        var filtered = _activities.value?.map { activity ->
+            val matchedFields = mutableMapOf<String, String>()
+            if (queryLower.isNotBlank()) {
+                if (activity.user_group.lowercase().contains(queryLower)) {
+                    matchedFields["user_group"] = queryLower
+                }
+                if (activity.activity_date.lowercase().contains(queryLower)) {
+                    matchedFields["activity_date"] = queryLower
+                }
+                if (activity.steps.toString().contains(queryLower)) {
+                    matchedFields["steps"] = queryLower
+                }
+                if (activity.distance_km.toString().contains(queryLower)) {
+                    matchedFields["distance_km"] = queryLower
+                }
+                if (activity.active_time_minutes.toString().contains(queryLower)) {
+                    matchedFields["active_time_minutes"] = queryLower
+                }
+            }
+
+            HighlightedActivity(activity = activity, matchedFields = matchedFields)
+        } ?: emptyList()
+
         if (selectedDate != null) {
-            val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+            val formatter = DateTimeFormatter.ISO_LOCAL_DATE
             filtered = filtered.filter { activity ->
                 try {
-                    val activityDate = LocalDate.parse(activity.activity_date, formatter)
+                    val activityDate = LocalDate.parse(activity.activity.activity_date, formatter)
                     activityDate == selectedDate
                 } catch (e: Exception) {
-                    Log.e("ActivityListViewModel", "Date parsing error for ${activity.activity_date}: ${e.message}", e)
+                    Log.e("ActivityListViewModel", "Date parsing error for ${activity.activity.activity_date}: ${e.message}", e)
                     false
                 }
             }
-            Log.d("ActivityListViewModel", "Filtered by date $selectedDate, result size: ${filtered.size}")
         }
 
-        // Поиск по всем полям и создание списка с подсветкой
-        val highlightedList = mutableListOf<HighlightedActivity>()
-        filtered.forEach { activity ->
-            val matchedFields = mutableMapOf<String, String>()
-            val queryLower = query?.lowercase() ?: ""
-
-            if (query.isNullOrBlank()) {
-                highlightedList.add(HighlightedActivity(activity, emptyMap()))
-                return@forEach
-            }
-
-            if (activity.user_group.lowercase().contains(queryLower)) {
-                matchedFields["user_group"] = activity.user_group
-            }
-            if (activity.activity_date.lowercase().contains(queryLower)) {
-                matchedFields["activity_date"] = activity.activity_date
-            }
-            if (activity.steps.toString().contains(queryLower, ignoreCase = true)) {
-                matchedFields["steps"] = activity.steps.toString()
-            }
-            if (activity.distance_km.toString().contains(queryLower, ignoreCase = true)) {
-                matchedFields["distance_km"] = activity.distance_km.toString()
-            }
-            if (activity.active_time_minutes.toString().contains(queryLower, ignoreCase = true)) {
-                matchedFields["active_time_minutes"] = activity.active_time_minutes.toString()
-            }
-
-            if (matchedFields.isNotEmpty()) {
-                highlightedList.add(HighlightedActivity(activity, matchedFields))
+        if (queryLower.isNotBlank()) {
+            filtered = filtered.filter { activity ->
+                activity.activity.user_group.lowercase().contains(queryLower) ||
+                        activity.activity.activity_date.lowercase().contains(queryLower) ||
+                        activity.activity.steps.toString().contains(queryLower) ||
+                        activity.activity.distance_km.toString().contains(queryLower) ||
+                        activity.activity.active_time_minutes.toString().contains(queryLower)
             }
         }
 
-        // Сортировка по текущему критерию
         if (sortField != null) {
-            highlightedList.sortWith(Comparator { a, b ->
+            filtered = filtered.sortedWith(Comparator { a, b ->
                 when (sortField) {
                     "distance" -> if (sortOrder["distance"] == true) {
                         b.activity.distance_km.compareTo(a.activity.distance_km)
@@ -149,7 +179,7 @@ class ActivityListViewModel  @Inject constructor() : ViewModel() {
                         a.activity.steps.compareTo(b.activity.steps)
                     }
                     "date" -> {
-                        val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+                        val formatter = DateTimeFormatter.ISO_LOCAL_DATE
                         val dateA = LocalDate.parse(a.activity.activity_date, formatter)
                         val dateB = LocalDate.parse(b.activity.activity_date, formatter)
                         if (sortOrder["date"] == true) {
@@ -158,20 +188,19 @@ class ActivityListViewModel  @Inject constructor() : ViewModel() {
                             dateA.compareTo(dateB)
                         }
                     }
-                    "emissions" -> if (sortOrder["emissions"] == true) {
-                        b.activity.steps.compareTo(a.activity.steps) // Placeholder
+                    "group" -> if (sortOrder["group"] == true) {
+                        b.activity.user_group.compareTo(a.activity.user_group)
                     } else {
-                        a.activity.steps.compareTo(b.activity.steps) // Placeholder
+                        a.activity.user_group.compareTo(b.activity.user_group)
                     }
                     else -> 0
                 }
             })
         }
 
-        _filteredActivities.value = highlightedList
-        Log.d("ActivityListViewModel", "Filtered and sorted list size: ${highlightedList.size}")
-        highlightedList.forEach { Log.d("ActivityListViewModel", "Activity: time=${it.activity.active_time_minutes}, date=${it.activity.activity_date}") }
+        _filteredActivities.value = filtered
+        _uiState.value = if (filtered.isEmpty()) UiState.Empty else UiState.Success(filtered)
     }
 }
 
-data class HighlightedActivity( val activity: UserActivity, val matchedFields: Map<String, String>)
+data class HighlightedActivity(val activity: UserActivity, val matchedFields: Map<String, String>)

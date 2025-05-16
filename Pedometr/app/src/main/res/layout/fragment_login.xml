@@ -7,80 +7,119 @@
     android:background="@android:color/white"
     android:padding="16dp">
 
+    <!-- Основной контейнер для UI авторизации -->
+    <LinearLayout
+        android:id="@+id/login_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Авторизация"
+            android:textSize="20sp"
+            android:textColor="@android:color/black" />
+
+        <EditText
+            android:id="@+id/etUsername"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Имя пользователя"
+            android:layout_marginTop="16dp"
+            android:padding="12dp"
+            android:background="@android:drawable/edit_text" />
+
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Пароль"
+            android:inputType="textPassword"
+            android:layout_marginTop="16dp"
+            android:padding="12dp"
+            android:background="@android:drawable/edit_text" />
+
+        <Button
+            android:id="@+id/btnLogin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Войти"
+            android:backgroundTint="#2196F3"
+            android:textColor="@android:color/white"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp" />
+
+        <TextView
+            android:id="@+id/tvLoggedInUser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text=""
+            android:textColor="#4CAF50"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvRole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text=""
+            android:textColor="#4CAF50"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text=""
+            android:textColor="#4CAF50"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Назад"
+            android:backgroundTint="#B0BEC5"
+            android:textColor="@android:color/white"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp" />
+
+    </LinearLayout>
+
+    <!-- ProgressBar для загрузки -->
+    <ProgressBar
+        android:id="@+id/loading_progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <!-- TextView для ошибок -->
     <TextView
+        android:id="@+id/error_text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Авторизация"
-        android:textSize="20sp"
-        android:textColor="@android:color/black" />
+        android:visibility="gone"
+        android:text="Ошибка загрузки данных"
+        android:textColor="@color/red"
+        android:textSize="16sp" />
 
-    <EditText
-        android:id="@+id/etUsername"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Имя пользователя"
-        android:layout_marginTop="16dp"
-        android:padding="12dp"
-        android:background="@android:drawable/edit_text" />
-
-    <EditText
-        android:id="@+id/etPassword"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Пароль"
-        android:inputType="textPassword"
-        android:layout_marginTop="16dp"
-        android:padding="12dp"
-        android:background="@android:drawable/edit_text" />
-
+    <!-- Кнопка для повторной попытки -->
     <Button
-        android:id="@+id/btnLogin"
+        android:id="@+id/retry_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Войти"
+        android:visibility="gone"
+        android:text="Попробовать снова"
         android:backgroundTint="#2196F3"
-        android:textColor="@android:color/white"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp" />
-
-    <TextView
-        android:id="@+id/tvLoggedInUser"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text=""
-        android:textColor="#4CAF50"
-        android:textSize="16sp"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/tvRole"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text=""
-        android:textColor="#4CAF50"
-        android:textSize="14sp"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/tvGroup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text=""
-        android:textColor="#4CAF50"
-        android:textSize="14sp"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/btnBack"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Назад"
-        android:backgroundTint="#B0BEC5"
         android:textColor="@android:color/white"
         android:paddingHorizontal="12dp"
         android:paddingVertical="8dp" />

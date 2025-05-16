@@ -1,17 +1,11 @@
 package com.example.pedometr
-
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.pm.PackageManager
-
 import android.util.Log
 import android.widget.Toast
-
 import androidx.core.app.ActivityCompat
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -134,8 +128,6 @@ class MapBuilder : AppCompatActivity(), com.yandex.mapkit.transport.masstransit.
         super.onStart()
     }
     override fun onMasstransitRoutes(p0: MutableList<Route>) {
-        Log.d("Pit", "P: ${p0.size}")
-
         if (p0.size > 0) {
             for (section in p0.get(0).getSections()) {
                 if(f==0)
@@ -158,12 +150,8 @@ class MapBuilder : AppCompatActivity(), com.yandex.mapkit.transport.masstransit.
                             p0[0].geometry,
                             section.geometry
                         )
-
                     }
-
                 }
-
-
             }
 
         }
@@ -257,8 +245,6 @@ class MapBuilder : AppCompatActivity(), com.yandex.mapkit.transport.masstransit.
         drivingRouter!!.requestRoutes(requestPoints, TimeOptions(), routeOptions, this)
 
     }
-
-
     private fun buildRouteBack(startPoint: Point, intermediatePoint: Point) {
         val routeOptions = RouteOptions(FitnessOptions(true))
         val requestPoints = mutableListOf<RequestPoint>()
